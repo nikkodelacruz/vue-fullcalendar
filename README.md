@@ -1,1 +1,1 @@
-<h1>Vue - Fullcalendar JS - AXIOS - MEDOO</h1>
+<h1>Vue - Fullcalendar JS - AXIOS - MEDOO - AUTOLOAD</h1>
