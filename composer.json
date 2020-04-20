@@ -1,0 +1,17 @@
+{
+    "name": "nikko/vue",
+    "authors": [
+        {
+            "name": "Nikko",
+            "email": "nikkodc12@gmail.com"
+        }
+    ],
+    "require": {
+        "catfan/medoo": "^1.7"
+    },
+    "autoload": {
+        "psr-4" : {
+            "Inc\\": "inc"
+        }
+    }
+}
