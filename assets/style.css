@@ -28,6 +28,9 @@
     font-weight: bold;
 }
 
+.fc-row .fc-bgevent-skeleton .fc-bgevent.disabled {
+	cursor: not-allowed;
+}
 
 .fc-day:hover{
 	/*background:lightblue;*/

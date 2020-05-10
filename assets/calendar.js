@@ -88,15 +88,20 @@ $(document).ready(function($) {
 					},
 					// timeFormat: 'hh:mm a',
 			        eventRender: function(info) {
+
 			            info.el.innerHTML = info.event.title;
-			            info.el.classList.add('event-tooltip');
+			        	let available = info.event.extendedProps.available;
+			            if (available) {
+			            	info.el.id = 'event-tooltip'+info.event.id;
+			            } else {
+			            	info.el.classList.add('disabled');
+			            }
 			            // info.el.setAttribute("data-tippy-content","Book Here");
 			            // info.el.style.opacity = 1;
 			            // info.el.style.verticalAlign = 'middle';
 			            // info.el.style.textAlign = 'center';
 			            // info.el.style.borderRadius = '20px';
 			            // info.el.style.color = '#FFF';
-			        	// var title = info.event.extendedProps.available;
 			        	
 			        	// Append element
 			        	let node = document.createElement("span"); // add element
@@ -111,10 +116,19 @@ $(document).ready(function($) {
 						    	vm.isFull = false;
 	        				}
             			}
+            			let startTime = info.event.extendedProps.start_time
+            			startTime = moment(startTime, "HH:mm").format("h:mm A");
+			        	let endTime = info.event.extendedProps.end_time
+			        	endTime = moment(endTime, "HH:mm").format("h:mm A");
+			        	let timeLeft = info.event.extendedProps.time_left
+			        	timeLeft = moment(timeLeft, "HH:mm").format("h:mm");
 						setTimeout(function(){
 							// tippy('[data-tippy-content]');
-						    tippy('.fc-bgevent.event-tooltip', {
-						    	content: 'Book Now',
+						    tippy('.fc-bgevent#event-tooltip'+info.event.id, {
+						    	content: `Schedule: ${startTime} - ${endTime}
+						    		<div>Time remaining: ${timeLeft}</div>
+						    	`,
+						    	allowHTML: true
 							});
 						},100);
 			        },
@@ -122,7 +136,7 @@ $(document).ready(function($) {
 			        },
 			        dayRender: function (info) {
 			        	let allDates = moment(info.date).format('YYYY-MM-DD');
-			        	let today = moment(new Date()).format('YYYY-MM-DD')
+			        	let today = moment(new Date()).format('YYYY-MM-DD');
 			        	// let isPast = moment(today).isBefore(allDates); // false
 			        	let isPast = moment(today).diff(allDates);
 			        	if (isPast > 0) { //past dates
@@ -135,25 +149,25 @@ $(document).ready(function($) {
 				    dateClick: function(info) {
 				    	let date = info.dateStr;
 				    	let checkEvent = vm.appointments;
-    					// let events = vm.calendar.getEvents();
-				    	// let isFull = false;
-				   //  	$.each(events, function(index, val) {
+    					
+    					let events = vm.calendar.getEvents();
+				    	let isFull = false;
+				    	$.each(events, function(index, val) {
 							// let d = moment(val.start).format('YYYY-MM-DD')
 				   //  		if (d == date) {
 							// 	console.log(date)
 				   //  			isFull = true;
 				   //  		}
-				    	// Allow 1 event per day
+				    		// Allow 1 event per day
+							if (val.extendedProps.appointment) {
+								let start = moment(val.start).format('YYYY-MM-DD')
+					    		if (start == date) {
+				    				isFull = true;
+					    		}
+							}
+						});
 
-							// if (val.extendedProps.appointment) {
-							// 	let d = moment(val.start).format('YYYY-MM-DD')
-					  //   		if (d == date) {
-				   //  				isFull = true;
-					  //   		}
-							// }
-						// });
-
-				    	if ( !vm.isFull ) {
+				    	if ( !isFull ) { //vm.isFull
 					    	let procedureName = vm.procedure.text;
 					    	let procedureTime = vm.procedure.time;
 					    	if (!procedureName && !procedureTime) {
@@ -165,23 +179,25 @@ $(document).ready(function($) {
 						    		// console.log(schedule)
 						    		$.each(schedule, function(index, val) {
 					            		if (val.start == date) {
-					            			vm.calendar.addEventSource([{
-					            				id: Math.random().toString(36).substring(2, 10),
-					            				title: procedureName,
-					            				start: date,
-					            				appointment: true,
-					            				procedureId: procedureId,
-					            				procedureDuration: procedureTime,
-					            				docSchedId : val.id
-					            			}]);
-					            			vm.appointments.push({
-					            				date: date,
-					            				procedure_id: procedureId,
-					            				procedure_duration: procedureTime
-					            			});
+			        						if (val.available) {
+						            			vm.calendar.addEventSource([{
+						            				id: Math.random().toString(36).substring(2, 10),
+						            				title: procedureName,
+						            				start: date,
+						            				appointment: true,
+						            				procedure_id: procedureId,
+						            				procedure_duration: procedureTime,
+						            				schedule_id : val.id // doctor schedule id
+						            			}]);
+						            			// vm.appointments.push({
+						            			// 	date: date,
+						            			// 	procedure_id: procedureId,
+						            			// 	procedure_duration: procedureTime
+						            			// });
+						    					// vm.isFull = true;
+			        						}
 					            		}
 						    		});
-						    		vm.isFull = true;
 						    	}
 					    	}
 				    	}
@@ -223,20 +239,21 @@ $(document).ready(function($) {
 				}
 				
     			let events = this.calendar.getEvents();
-    			let appointment = [];
+    			let appointments = [];
 				$.each(events, function(index, val) {
-					if (val.extendedProps.appointment) {
-						appointment.push({
-							id: val.extendedProps.procedureId,
-							time: val.extendedProps.procedureDuration,
-							doctor_schedule_id: val.extendedProps.docSchedId
+					if (val.extendedProps.appointment) { //get only the appointment
+						appointments.push({
+							id: val.extendedProps.procedure_id,
+							date: moment(val.start).format('YYYY-MM-DD'),
+							time_duration: val.extendedProps.procedure_duration,
+							schedule_id: val.extendedProps.schedule_id, //doctor schedule id
 						})
 					}
 				});
-				if (appointment.length <= 0) {
+				if (appointments.length <= 0) {
 					this.errors.push("Please book an appointment");
 				}
-				console.log(appointment[0].time)
+				// console.log(appointments)
 
 				if (this.errors.length <= 0) {
 
@@ -256,10 +273,11 @@ $(document).ready(function($) {
 						    	email_address: this.email,
 						    	source: this.source,
 						    	remarks: this.remarks,
-						    	procedure_id: appointment[0].id,
-						    	procedure_duration: appointment[0].time,
-						    	doctor_id: this.doctor.id,
-						    	doctor_schedule_id: appointment[0].doctor_schedule_id
+						    	doctor_id: this.doctor.id, //selected doctor
+						    	appointments: appointments
+						    	// procedure_id: appointment[0].id,
+						    	// procedure_duration: appointment[0].time,
+						    	// doctor_schedule_id: appointment[0].doctor_schedule_id
 						  	}
 						})
 						.then((response) => {
@@ -267,7 +285,15 @@ $(document).ready(function($) {
 							setTimeout(function(){
 								vm.loading = false;
 							},500);
-							if (response.data.status == 'success') {
+
+							if (response.data.status == 'invalid') {
+								let dates = response.data.data;
+								$.each(dates, function(index, val) {
+									let date = moment(new Date(val)).format('LL')
+									let message = "Selected procedure on "+date+" has already reached the time remaining, \nPlease choose another date or procedure";
+									alert(message);
+								});
+							} else if (response.data.status == 'success') {
 								alert('Successfully Added')
 								setTimeout(function(){
 									vm.status = true;
@@ -340,18 +366,21 @@ $(document).ready(function($) {
 							// always exccuted
 						})
 				    } );
-				    // console.log(response);
 				    let vm = this;
 				    let doctorScheds = [];
 				    if (response.data.status == 'success') {
 				    	let sched = response.data.schedule;
 				    	$.each(sched, function(index, val) {
+
 				    		let startTime = JSON.parse(val.time_duration).start;
 				    		let endTime = JSON.parse(val.time_duration).end;
+				    		let timeLeft = Number(moment(val.time_left, "HH:mm").format("HH"));
+					    	console.log(val.date_available);
+
 				    		doctorScheds.push({
 				    			id: val.id,
-				    			available: true,
-				    			title: "Available", //val.id
+				    			available: (timeLeft <= 0) ? false : true,
+				    			title: (timeLeft <= 0) ? 'FULLY BOOKED' : 'AVAILABLE',
 				    			start: val.date_available,
 				    			end: val.date_available,
 				    			start_time: startTime,
@@ -360,7 +389,7 @@ $(document).ready(function($) {
 				    			rendering: 'background',
 						        // color: '#7cae66',
 						     	// display: 'background',
-						        backgroundColor: '#7cae66',
+						        backgroundColor: (timeLeft <= 0) ? 'red' : '#7cae66',
 				    		});
 				    	});
 				    }
@@ -391,24 +420,8 @@ $(document).ready(function($) {
 				    if (response.data.status == 'success') {
 				    	let vm = this;
 				    	$.each(response.data.procedures, function(index, val) {
-				    		let hourText = "";
-				    		let minuteText = "";
-				    		let hour = Number(moment(val.duration, "HH:mm").format("HH"));
-				    		let minute = Number(moment(val.duration, "HH:mm").format("m"));
-				    		if (hour <= 1) {
-				    			hourText = hour+" hour ";
-				    		} else {
-				    			hourText = hour+" hours ";
-				    		}
-				    		if (minute > 0) {
-				    			if (minute <= 1) {
-				    				minuteText = minute+" minute";
-				    			} else {
-				    				minuteText = minute+" minutes";
-				    			}
-				    		}
-				    		// console.log(hourText+minuteText);
-						    let procedureName = val.name+" ("+hourText+minuteText+")";
+				    		let time = vm.getHoursMinutes(val.duration);
+			    			let procedureName = val.name+" ("+time+")";
 						    vm.procedures.push({ id: val.id, name: procedureName, text: val.name, duration: val.duration })
 				    	});
 				    }
@@ -418,6 +431,25 @@ $(document).ready(function($) {
 				    console.error(error);
 					this.scheduleLoading = false;
 				}
+			},
+			getHoursMinutes: function(time) {
+				let hourText = "";
+	    		let minuteText = "";
+	    		let hour = Number(moment(time, "HH:mm").format("HH"));
+	    		let minute = Number(moment(time, "HH:mm").format("m"));
+	    		if (hour <= 1) {
+	    			hourText = hour+" hour ";
+	    		} else {
+	    			hourText = hour+" hours ";
+	    		}
+	    		if (minute > 0) {
+	    			if (minute <= 1) {
+	    				minuteText = minute+" minute";
+	    			} else {
+	    				minuteText = minute+" minutes";
+	    			}
+	    		}
+			    return hourText+minuteText;
 			},
 			validEmail: function(email) {
 		    	let re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;

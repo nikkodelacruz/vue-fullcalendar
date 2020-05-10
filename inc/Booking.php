@@ -55,4 +55,6 @@ class Booking
 	}
 
 }
+
+// new Booking();
 ?>

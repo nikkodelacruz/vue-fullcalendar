@@ -3,6 +3,15 @@ require '../vendor/autoload.php';
 
 use Inc\Booking;
 
+$timeDuration = new DateTime('04:00:00'); // total time - duration from selected procedure
+$timeLeft = new DateTime('02:00:00'); // convert time left to time object
+
+$status = ($timeDuration >= $timeLeft); //true if within time duration
+
+var_dump($status);
+
+
+
 $a = new DateTime('08:00');
 $b = new DateTime('12:00');
 
@@ -19,7 +28,7 @@ $timeLeft = new DateTime($timeLeft);
 $oneHour = new DateTime('02:00'); // minus hour
 $totalHour = $timeLeft->diff($oneHour);
 
-echo $totalHour->format("%H:%I");
+// echo $totalHour->format("%H:%I");
 
 
 // saveData();
