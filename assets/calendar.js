@@ -1,5 +1,38 @@
 $(document).ready(function($) {
+
+	// register modal component
+    Vue.component("modal", {
+    	template: "#modal-template"
+    });
+window['moment-range'].extendMoment(moment);
+    const day_start = moment().startOf('day').hours(7); // 7 am
+const day_end   = moment().startOf('day').hours(10) // 10 pm
+const day = moment.range(day_start, day_end)
+const time_slots = Array.from(day.by('hours', {step: 1}))
+// console.log(time_slots);
+
 	
+	const start_datex = new Date("2016-05-04T01:00:00");
+	let start_date = new Date("2016-05-04T01:00:00");
+let  end_date   = new Date("2016-05-04T20:00:00");
+
+var slices = [];
+var count = 0;
+// var moment;
+
+while (end_date >= start_date) {
+    // start = new Date(start.getTime() + (60*60*1000));
+    start_date = moment(start_date).add(1, 'h').add(30, 'm');
+    slices[count] = moment(start_date).format('h:mm A');
+    count++;
+}
+slices.unshift(moment(start_datex).format('h:mm A'));
+slices.pop();
+console.log(slices)
+// console.log(moment(start_date).format('h:mm'));
+// console.log(start.getTime())//1462312800000
+// console.log(moment(start).format("h:mm")+ (60*60*1000));
+
 	const addAppointmentAPI = 'inc/API/AddAppointment.php';
 	const getDoctorsAPI = 'inc/API/GetDoctors.php';
 	const getProceduresAPI = 'inc/API/Procedures.php';
@@ -51,7 +84,9 @@ $(document).ready(function($) {
 			doctor: { id: '', name: '' },
 			procedures: [],
 			procedure: '',
-			appointments: []
+			appointments: [],
+			showModal: false,
+			modalContent: { doctor: '', schedule: '', timeSlot: '' }
 		},
 		methods: {
 			fullcalendar: function(){
@@ -125,9 +160,7 @@ $(document).ready(function($) {
 						setTimeout(function(){
 							// tippy('[data-tippy-content]');
 						    tippy('.fc-bgevent#event-tooltip'+info.event.id, {
-						    	content: `Schedule: ${startTime} - ${endTime}
-						    		<div>Time remaining: ${timeLeft}</div>
-						    	`,
+						    	content: 'Book here',
 						    	allowHTML: true
 							});
 						},100);
@@ -147,6 +180,7 @@ $(document).ready(function($) {
 				    dayClick: function(info) {
 				    },
 				    dateClick: function(info) {
+
 				    	let date = info.dateStr;
 				    	let checkEvent = vm.appointments;
     					
@@ -177,8 +211,25 @@ $(document).ready(function($) {
 								let schedule = vm.schedule
 						    	if (schedule.length > 0) { //doctor schedule
 						    		// console.log(schedule)
+									// show modal
+									vm.showModal = true;
 						    		$.each(schedule, function(index, val) {
 					            		if (val.start == date) {
+					            			// console.log(val)
+					            			var start = new Date("2016-05-04T00:00:00.000Z");
+											var end   = new Date("2016-05-04T23:59:59.999Z");
+
+											var slices = {};
+											var count = 0;
+											var moment;
+
+											while (end >= start) {
+											    start = new Date(start.getTime() + (15*60*1000));
+											    slices[count] = start;
+											    count++;
+											}
+											console.log(slices);
+					            			vm.modalContent.schedule = val.start_time+' - '+val.end_time;
 			        						if (val.available) {
 						            			vm.calendar.addEventSource([{
 						            				id: Math.random().toString(36).substring(2, 10),
@@ -389,7 +440,7 @@ $(document).ready(function($) {
 				    			rendering: 'background',
 						        // color: '#7cae66',
 						     	// display: 'background',
-						        backgroundColor: (timeLeft <= 0) ? 'red' : '#7cae66',
+						        backgroundColor: (timeLeft <= 0) ? '#F5A18D' : '#E3F4FB',
 				    		});
 				    	});
 				    }
@@ -465,12 +516,14 @@ $(document).ready(function($) {
     			});				
     			if (vm.doctor.id) {
 			    	vm.doctor.name = name+' - ';
+			    	vm.modalContent.doctor = name;
 					vm.scheduleLoading = true;
 					vm.appointments = [];
 		    		vm.isFull = false;
     				vm.getDoctorSchedule(vm.doctor.id);
     			} else {
 			    	vm.doctor.name = '';
+			    	vm.modalContent.doctor = '';
 		    	}
 		    },
 		    navigateMonth: function(nav) {
@@ -535,46 +588,7 @@ $(document).ready(function($) {
 		}
 
 	});
-	
-	// Vue.component('fullcalendar',{
-		// data: function() {
-			// return {
-				// count: 0
-			// }
-		// },
-		// props: [],
-		// template: '#calendar'
-	// });
-    
-   //  console.log(getJsonEvents());
-   //  function getJsonEvents() {
-   //  	var events1 = [
-		 //    {
-			//     "title": "All Day Event",
-			//     "start": "2020-02-01"
-			// },
-			// {
-			//     "title": "Long Event",
-			//     "start": "2020-02-07",
-			//     "end": "2020-02-10"
-			// },
-			// {
-			//     "title": "Long Event",
-			//     "start": "2020-02-07",
-			//     "end": "2020-02-10"
-			// },
-		 //  ];
-   //  	var events = [];
-   //  	var asd = [];
 
-   //  	$.getJSON('assets/events.json', function(result) {
-   //  		$.each( result, function( key, val ) {
-			//     // events.push( "<li id='" + key + "'>" + val + "</li>" );
-   //  			// console.log(val)
-	  //   		events.push(val)
-			// });
-   //  	});
-   //  	return asd.push(events);
-   //  }
+	
 });
  
