@@ -4,34 +4,55 @@ $(document).ready(function($) {
     Vue.component("modal", {
     	template: "#modal-template"
     });
-window['moment-range'].extendMoment(moment);
-    const day_start = moment().startOf('day').hours(7); // 7 am
-const day_end   = moment().startOf('day').hours(10) // 10 pm
-const day = moment.range(day_start, day_end)
-const time_slots = Array.from(day.by('hours', {step: 1}))
-// console.log(time_slots);
 
 	
-	const start_datex = new Date("2016-05-04T01:00:00");
-	let start_date = new Date("2016-05-04T01:00:00");
-let  end_date   = new Date("2016-05-04T20:00:00");
+// 	const start_datex = new Date("2016-05-04T01:00:00");
+// 	let start_date = new Date("2016-05-04T01:00:00");
+// let  end_date   = new Date("2016-05-04T20:00:00");
 
-var slices = [];
-var count = 0;
-// var moment;
+// var slices = [];
+// var count = 0;
 
-while (end_date >= start_date) {
-    // start = new Date(start.getTime() + (60*60*1000));
-    start_date = moment(start_date).add(1, 'h').add(30, 'm');
-    slices[count] = moment(start_date).format('h:mm A');
-    count++;
+// while (end_date >= start_date) {
+//     // start = new Date(start.getTime() + (60*60*1000));
+//     start_date = moment(start_date).add(1, 'h').add(30, 'm');
+//     slices[count] = moment(start_date).format('h:mm A');
+//     count++;
+// }
+// slices.unshift(moment(start_datex).format('h:mm A')); //append to first array
+// slices.pop(); // remove last array
+// console.log(slices)
+
+let value = {
+  interval: '01:30:00',
+  startTime: '03:00:00',
+  endTime: '05:00:00'
+};
+
+var inputDataFormat = "HH:mm:ss";
+var outputFormat = "HH:mm a";
+
+var tmp = moment(value.interval, inputDataFormat);
+var dif = tmp - moment().startOf("day");
+
+var startIntervalTime = moment(value.startTime, inputDataFormat).add(-dif, "ms");
+var endIntervalTime = moment(value.startTime, inputDataFormat);
+var finishTime = moment(value.endTime, inputDataFormat);
+
+function prepareIntervals() {
+  var intervals = [];
+  
+  while(startIntervalTime < finishTime) {
+    var format = startIntervalTime.format(outputFormat) + " - " + endIntervalTime.format(outputFormat);
+    intervals.push(format);
+    startIntervalTime.add(dif, "ms");
+    endIntervalTime.add(dif, "ms");
+  }
+  
+  return intervals;
 }
-slices.unshift(moment(start_datex).format('h:mm A'));
-slices.pop();
-console.log(slices)
-// console.log(moment(start_date).format('h:mm'));
-// console.log(start.getTime())//1462312800000
-// console.log(moment(start).format("h:mm")+ (60*60*1000));
+
+console.dir(prepareIntervals());
 
 	const addAppointmentAPI = 'inc/API/AddAppointment.php';
 	const getDoctorsAPI = 'inc/API/GetDoctors.php';
