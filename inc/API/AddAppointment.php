@@ -13,127 +13,42 @@ class AddAppointment
 		// axios post
 		$this->data = json_decode(file_get_contents("php://input"), TRUE);
 		$this->book = new Booking();
-		// $this->book->insertData('appointments', [
-		// 	'full_name' 		=> $this->data['full_name'],
-		// 	'gender' 			=> $this->data['gender'],
-		// 	'contact_number' 	=> $this->data['contact_number'],
-		// 	'birth_date' 		=> $this->data['birth_date'],
-		// 	'email_address' 	=> $this->data['email_address'],
-		// 	'source' 			=> $this->data['source'],
-		// 	'remarks' 			=> $this->data['remarks'],
-		// 	'procedure_id' 			=> $this->data['procedure_id'],
-		// ]);
+		$this->addBooking($this->data);
 
+		
+	}
 
+	public function addBooking($data)
+	{
+		$id = $this->book->insertData('appointments', [
+			'full_name' 		=> $data['full_name'],
+			'gender' 			=> $data['gender'],
+			'contact_number' 	=> $data['contact_number'],
+			'birth_date' 		=> $data['birth_date'],
+			'email_address' 	=> $data['email_address'],
+			'source' 			=> $data['source'],
+			'remarks' 			=> $data['remarks'],
+		]);
 
-		// $procedure_id = $this->data['procedure_id'];
-		// $duration = $this->data['procedure_duration']; // $duration = "7:00";
-		// $sched_id = $this->data['doctor_schedule_id'];
-
-		$appointments = $this->data['appointments'];
-		$results = [];
-
-		if (!empty($appointments)) {
-			foreach ($appointments as $appointment) {
-				$sched = $this->book->getData('doctor_schedule', "*", ["id" => $appointment['schedule_id']]);
-				$time_left = $sched[0]['time_left'];
-				$time_duration = $sched[0]['time_duration'];
-				$time_duration = json_decode($time_duration);
-				
-				$start_time = $time_duration->start;
-				$end_time = $time_duration->end;
-
-				$timeLeft = new DateTime($time_left); // convert time left to time object
-				$timeDuration = new DateTime($appointment['time_duration']); // total time - duration from selected procedure
-				$interval2 = $timeLeft->diff($timeDuration);
-				$totalTime = $interval2->format("%H:%I"); // get remaining time deducted from duration of procedure
-				
-				// $durationTime = new DateTime($appointment['time_duration']);
-				$status = ($timeDuration <= $timeLeft); //true if within time duration
-
-				$results[] = [
-					'status' => $status,
-					'date' => $appointment['date'], //selected date
-					'time' => $timeDuration, //selected procedure duration
-					'schedule_id' => $appointment['schedule_id'],
-					'time_left' => $totalTime
-				];
-			
-			}
-		}
-
-		// Check for invalid schedule
-		$isValid = true;
-		$invalid_schedule = [];
-		$valid_schedule = [];
-		if (!empty($results)) {
-			foreach ($results as $result) {
-				if (!$result['status']) {
-					$isValid = false;
-					$invalid_schedule[] = $result['date'];
-				} else {
-					$valid_schedule[] = [
-						'date' => $result['date'],
-						'id' => $result['schedule_id'],
-						'time_left' => $result['time_left']
-					];
+		if (!empty($id)) {
+			if (!empty($this->data['booking'])) {
+				foreach ($this->data['booking'] as $book) {
+					$this->book->insertData('book', [
+						'appointment_id' 	=> $id,
+						'doctor_id' 		=> $book['doctor_id'],
+						'schedule_id' 		=> $book['schedule_id'],
+						'procedure_id' 		=> $book['procedure_id'],
+						'time_slot' 		=> $book['time_slot'],
+						'date'				=> $book['date']
+					]);
 				}
 			}
 		}
 
-		if (!$isValid) {
-			echo json_encode(['status' => 'invalid', 'data' => $invalid_schedule]);
-		} else {
-			if (!empty($valid_schedule)) {
-				foreach ($valid_schedule as $sched) {
-					$updateSched = $this->book->updatedData(
-						'doctor_schedule', 
-						[
-							'time_left' => $sched['time_left']
-						], 
-						["id" => $sched['id']]
-					);
-				}
-				echo json_encode(['status' => 'success']);
-			}
-		}
-
-		 
-
-		// $sched = $this->book->getData('doctor_schedule', "*", ["id" => $sched_id]);
-		// $time_left = $sched[0]['time_left'];
-		// $time_duration = $sched[0]['time_duration'];
-		// $time_duration = json_decode($time_duration);
-		
-		// $start_time = $time_duration->start;
-		// $end_time = $time_duration->end;
-
-		// //$start_time = new DateTime($start_time); // get initial start time
-		// //$end_time = new DateTime($end_time); // get initial end time
-		// //$interval1 = $start_time->diff($end_time);
-		// //$timeLeft = $interval1->format("%H:%I"); // get total hours from start and end
-		
-		// $timeLeft = new DateTime($time_left); // convert time left to time object
-		// $timeDuration = new DateTime($duration); // total time - duration from selected procedure
-		// $interval2 = $timeLeft->diff($timeDuration);
-		// $totalTime = $interval2->format("%H:%I"); // get remaining time deducted from duration of procedure
-		
-		// $durationTime = new DateTime($duration);
-
-		// echo $totalTime;
-		// if ( $durationTime < $timeLeft ) {
-		// 	$updateSched = $this->book->updatedData(
-		// 		'doctor_schedule', 
-		// 		[
-		// 			'time_left' => $totalTime
-		// 		], 
-		// 		["id" => $sched_id]
-		// 	);
-		// 	echo json_encode(['status' => 'success', 'data'=> $updateSched]);
-		// } else {
-		// 	echo json_encode(['status' => 'full']);
-		// }
-
+		echo json_encode([
+			'status' => 'success',
+			'doctors' => $data,
+		]);
 
 	}
 }

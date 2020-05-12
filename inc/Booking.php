@@ -34,6 +34,7 @@ class Booking
 	{
 		if (!empty($table) && !empty($fields)) {
 			$this->db->insert($table, $fields);
+			return $this->db->id();
 		}
 	}
 

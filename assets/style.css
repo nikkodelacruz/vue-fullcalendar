@@ -58,13 +58,18 @@
 }
 
 a.fc-day-grid-event.fc-event {
-    white-space: nowrap;
     overflow: hidden;
     padding: 0 4px;
     margin: 1px 5px;
     border-radius: 5px;
-    font-weight: bold;
+    background-color: #3DA88B;
+    color: #fff;
 }
+
+a.fc-day-grid-event.fc-event:hover {
+    color: #fff;
+}
+
 
 a.fc-day-grid-event.fc-event > .remove-event {
 	color: red;
@@ -72,6 +77,11 @@ a.fc-day-grid-event.fc-event > .remove-event {
     line-height: 1;
     font-weight: bold;
     cursor: pointer;
+    position: absolute;
+    top: 0;
+    line-height: 0;
+    margin: 5px 2px;
+    right: 0;
 }
 
 /*Modal Style*/
@@ -88,8 +98,12 @@ a.fc-day-grid-event.fc-event > .remove-event {
 }
 
 .modal-wrapper {
-  display: table-cell;
-  vertical-align: middle;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    overflow-y: auto;
+    width: 100%;
+    padding: 20px 0;
 }
 
 .modal-container {
@@ -137,4 +151,14 @@ a.fc-day-grid-event.fc-event > .remove-event {
 .modal-leave-active .modal-container {
   -webkit-transform: scale(1.1);
   transform: scale(1.1);
+}
+
+ul.modal-timeslot {
+    margin: 0;
+    padding: 0;
+}
+ul.modal-timeslot li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }

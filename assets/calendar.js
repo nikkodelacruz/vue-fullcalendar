@@ -5,59 +5,11 @@ $(document).ready(function($) {
     	template: "#modal-template"
     });
 
-	
-// 	const start_datex = new Date("2016-05-04T01:00:00");
-// 	let start_date = new Date("2016-05-04T01:00:00");
-// let  end_date   = new Date("2016-05-04T20:00:00");
-
-// var slices = [];
-// var count = 0;
-
-// while (end_date >= start_date) {
-//     // start = new Date(start.getTime() + (60*60*1000));
-//     start_date = moment(start_date).add(1, 'h').add(30, 'm');
-//     slices[count] = moment(start_date).format('h:mm A');
-//     count++;
-// }
-// slices.unshift(moment(start_datex).format('h:mm A')); //append to first array
-// slices.pop(); // remove last array
-// console.log(slices)
-
-let value = {
-  interval: '01:30:00',
-  startTime: '03:00:00',
-  endTime: '05:00:00'
-};
-
-var inputDataFormat = "HH:mm:ss";
-var outputFormat = "HH:mm a";
-
-var tmp = moment(value.interval, inputDataFormat);
-var dif = tmp - moment().startOf("day");
-
-var startIntervalTime = moment(value.startTime, inputDataFormat).add(-dif, "ms");
-var endIntervalTime = moment(value.startTime, inputDataFormat);
-var finishTime = moment(value.endTime, inputDataFormat);
-
-function prepareIntervals() {
-  var intervals = [];
-  
-  while(startIntervalTime < finishTime) {
-    var format = startIntervalTime.format(outputFormat) + " - " + endIntervalTime.format(outputFormat);
-    intervals.push(format);
-    startIntervalTime.add(dif, "ms");
-    endIntervalTime.add(dif, "ms");
-  }
-  
-  return intervals;
-}
-
-console.dir(prepareIntervals());
-
 	const addAppointmentAPI = 'inc/API/AddAppointment.php';
 	const getDoctorsAPI = 'inc/API/GetDoctors.php';
 	const getProceduresAPI = 'inc/API/Procedures.php';
 	const calendarElement = 'calendar';
+	const getBookings = 'inc/API/GetBookings.php';
 
 	new Vue({
 		el: "#book-now",
@@ -107,7 +59,9 @@ console.dir(prepareIntervals());
 			procedure: '',
 			appointments: [],
 			showModal: false,
-			modalContent: { doctor: '', schedule: '', timeSlot: '' }
+			selected: { id:'', doctor: '', timeSlot: [], date: '', doctorSchedId: '' }, //current selected date
+			bookData: [], //all booking
+			booking: []
 		},
 		methods: {
 			fullcalendar: function(){
@@ -152,13 +106,7 @@ console.dir(prepareIntervals());
 			            } else {
 			            	info.el.classList.add('disabled');
 			            }
-			            // info.el.setAttribute("data-tippy-content","Book Here");
-			            // info.el.style.opacity = 1;
-			            // info.el.style.verticalAlign = 'middle';
-			            // info.el.style.textAlign = 'center';
-			            // info.el.style.borderRadius = '20px';
-			            // info.el.style.color = '#FFF';
-			        	
+
 			        	// Append element
 			        	let node = document.createElement("span"); // add element
         				let text_node = document.createTextNode('×'); // add text
@@ -169,7 +117,10 @@ console.dir(prepareIntervals());
 	        				info.el.appendChild(node); // append the node to element
 	        				info.el.getElementsByClassName("remove-event")[0].onclick = function() {
 	        					vm.calendar.getEventById( info.event.id ).remove();
+								// remove item from array by key value
+								vm.bookData = vm.bookData.filter( obj => obj.id !== info.event.id );
 						    	vm.isFull = false;
+								// console.log(vm.bookData);
 	        				}
             			}
             			let startTime = info.event.extendedProps.start_time
@@ -232,41 +183,41 @@ console.dir(prepareIntervals());
 								let schedule = vm.schedule
 						    	if (schedule.length > 0) { //doctor schedule
 						    		// console.log(schedule)
-									// show modal
-									vm.showModal = true;
 						    		$.each(schedule, function(index, val) {
 					            		if (val.start == date) {
-					            			// console.log(val)
-					            			var start = new Date("2016-05-04T00:00:00.000Z");
-											var end   = new Date("2016-05-04T23:59:59.999Z");
-
-											var slices = {};
-											var count = 0;
-											var moment;
-
-											while (end >= start) {
-											    start = new Date(start.getTime() + (15*60*1000));
-											    slices[count] = start;
-											    count++;
-											}
-											console.log(slices);
-					            			vm.modalContent.schedule = val.start_time+' - '+val.end_time;
 			        						if (val.available) {
-						            			vm.calendar.addEventSource([{
-						            				id: Math.random().toString(36).substring(2, 10),
-						            				title: procedureName,
-						            				start: date,
-						            				appointment: true,
-						            				procedure_id: procedureId,
-						            				procedure_duration: procedureTime,
-						            				schedule_id : val.id // doctor schedule id
-						            			}]);
-						            			// vm.appointments.push({
-						            			// 	date: date,
-						            			// 	procedure_id: procedureId,
-						            			// 	procedure_duration: procedureTime
-						            			// });
-						    					// vm.isFull = true;
+
+						            			// show modal
+												vm.showModal = true;
+												vm.selected.timeSlot = [];
+
+												let value = {
+													interval: procedureTime,
+												  	startTime: val.start_time,
+												  	endTime: val.end_time
+												};
+
+												let inputDataFormat = "h:mm:ss";
+												let outputFormat = "h:mm A";
+
+												let tmp = moment(value.interval, inputDataFormat);
+												let dif = tmp - moment().startOf("day");
+
+												let startIntervalTime = moment(value.startTime, inputDataFormat).add(-dif, "ms");
+												let endIntervalTime = moment(value.startTime, inputDataFormat);
+												let finishTime = moment(value.endTime, inputDataFormat);
+
+												// let intervals = [];
+												while(finishTime >= startIntervalTime) {
+												    let format = startIntervalTime.format(outputFormat) + " - " + endIntervalTime.format(outputFormat);
+												    vm.selected.timeSlot.push(format);
+												    startIntervalTime.add(dif, "ms");
+												    endIntervalTime.add(dif, "ms");
+												}
+												vm.selected.timeSlot.shift();
+												vm.selected.timeSlot.pop();
+												vm.selected.date = moment(date).format('LL');
+												vm.selected.doctorSchedId = val.id // doctor schedule id
 			        						}
 					            		}
 						    		});
@@ -275,9 +226,6 @@ console.dir(prepareIntervals());
 				    	}
 
 				    },
-				    // select: function(info) {
-				    //   alert('selected ' + info.startStr + ' to ' + info.endStr);
-				    // }
 			    });
     			this.calendar.render();
 				this.viewTitle = this.calendar.view.title;
@@ -310,19 +258,23 @@ console.dir(prepareIntervals());
 					this.errors.push("Please select a doctor");
 				}
 				
-    			let events = this.calendar.getEvents();
-    			let appointments = [];
-				$.each(events, function(index, val) {
-					if (val.extendedProps.appointment) { //get only the appointment
-						appointments.push({
-							id: val.extendedProps.procedure_id,
-							date: moment(val.start).format('YYYY-MM-DD'),
-							time_duration: val.extendedProps.procedure_duration,
-							schedule_id: val.extendedProps.schedule_id, //doctor schedule id
-						})
-					}
-				});
-				if (appointments.length <= 0) {
+     			//let events = this.calendar.getEvents();
+     			//let appointments = [];
+				// $.each(events, function(index, val) {
+				// 	if (val.extendedProps.appointment) { //get only the appointment
+				// 		appointments.push({
+				// 			id: val.extendedProps.procedure_id,
+				// 			date: moment(val.start).format('YYYY-MM-DD'),
+				// 			time_duration: val.extendedProps.procedure_duration,
+				// 			schedule_id: val.extendedProps.schedule_id, //doctor schedule id
+				// 		})
+				// 	}
+				// });
+
+
+				// console.log(this.bookData);
+
+				if (this.bookData.length <= 0) {
 					this.errors.push("Please book an appointment");
 				}
 				// console.log(appointments)
@@ -345,15 +297,16 @@ console.dir(prepareIntervals());
 						    	email_address: this.email,
 						    	source: this.source,
 						    	remarks: this.remarks,
-						    	doctor_id: this.doctor.id, //selected doctor
-						    	appointments: appointments
+						    	booking: this.bookData,
+						    	// doctor_id: this.doctor.id, //selected doctor
+						    	// appointments: appointments
 						    	// procedure_id: appointment[0].id,
 						    	// procedure_duration: appointment[0].time,
 						    	// doctor_schedule_id: appointment[0].doctor_schedule_id
 						  	}
 						})
 						.then((response) => {
-							console.log(response);
+							// console.log(response);
 							setTimeout(function(){
 								vm.loading = false;
 							},500);
@@ -447,7 +400,7 @@ console.dir(prepareIntervals());
 				    		let startTime = JSON.parse(val.time_duration).start;
 				    		let endTime = JSON.parse(val.time_duration).end;
 				    		let timeLeft = Number(moment(val.time_left, "HH:mm").format("HH"));
-					    	console.log(val.date_available);
+					    	// console.log(val.date_available);
 
 				    		doctorScheds.push({
 				    			id: val.id,
@@ -504,6 +457,34 @@ console.dir(prepareIntervals());
 					this.scheduleLoading = false;
 				}
 			},
+			async getAllBookings() {
+				try {
+				    const response = await new Promise((resolve, reject) => {
+				    	axios.get(getBookings)
+						.then(function(response){
+							resolve(response)
+						})
+						.catch(function(error){
+							// handle error
+							reject(error)
+							console.log(error)
+						})
+						.then(function(){
+							// always exccuted
+						})
+				    } );
+				    if (response.data.status == 'success') {
+				    	let vm = this;
+				    	this.booking = response.data.bookings;
+				    	// console.log(this.booking)
+				    }
+				    // this.procedures.push
+					this.scheduleLoading = false;
+				} catch (error) {
+				    console.error(error);
+					this.scheduleLoading = false;
+				}
+			},
 			getHoursMinutes: function(time) {
 				let hourText = "";
 	    		let minuteText = "";
@@ -523,6 +504,56 @@ console.dir(prepareIntervals());
 	    		}
 			    return hourText+minuteText;
 			},
+			bookTimeSlot: function(timeSlot) {
+				let date = moment(this.selected.date).format('YYYY-MM-DD');
+				let book = this.doctor.id+this.procedure.id+timeSlot+date;
+				let id = book.replace(/[^A-Z0-9]/ig, "");
+				this.bookData.push({
+					id: id,
+    				start: date,
+    				doctor_id: this.doctor.id,
+    				procedure_id: this.procedure.id, //procedures id
+    				schedule_id : this.selected.doctorSchedId, // doctor schedule id
+    				time_slot: timeSlot,
+    				date: date
+				});
+				// console.log(this.bookData);
+
+				this.calendar.addEventSource([{
+    				id: id,
+    				title: this.procedure.text+' <br>('+timeSlot+')',
+    				start: date,
+    				appointment: true,
+    				procedure_id: this.procedure.id, //procedures id
+    				procedure_duration: this.procedure.time,
+    				schedule_id : this.selected.doctorSchedId // doctor schedule id
+    			}]);
+
+    			this.showModal = false;
+
+			},
+			checkTimeSlot: function(doctor_id, procedure_id, sched_id, date, time) {
+				let vm = this;
+				let result = false;
+				let dateFormat = moment(date).format('YYYY-MM-DD');
+				let book_id = doctor_id+procedure_id+sched_id+dateFormat+time;
+				book_id = this.removeSpecialCharacters(book_id)
+				// console.log(book_id);
+				if (this.booking) {
+					$.each(this.booking, (index, val) => {
+						let id = val.doctor_id+val.procedure_id+val.schedule_id+val.date+val.time_slot;
+						id = vm.removeSpecialCharacters(id)
+						if (book_id == id) {
+							result = true;
+						} 
+    				});	
+				}
+				return result;
+			},
+			removeSpecialCharacters: function(string) {
+				//includes removing of spaces
+				return string.replace(/[^A-Z0-9]/ig, "");
+			},
 			validEmail: function(email) {
 		    	let re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 		      	return re.test(email);
@@ -537,14 +568,15 @@ console.dir(prepareIntervals());
     			});				
     			if (vm.doctor.id) {
 			    	vm.doctor.name = name+' - ';
-			    	vm.modalContent.doctor = name;
+			    	vm.selected.doctor = name;
 					vm.scheduleLoading = true;
 					vm.appointments = [];
 		    		vm.isFull = false;
     				vm.getDoctorSchedule(vm.doctor.id);
+		    		vm.bookData = []; //clear data upon changing of doctor
     			} else {
 			    	vm.doctor.name = '';
-			    	vm.modalContent.doctor = '';
+			    	vm.selected.doctor = '';
 		    	}
 		    },
 		    navigateMonth: function(nav) {
@@ -566,6 +598,7 @@ console.dir(prepareIntervals());
 			}
 		},
 		created(){
+			this.getAllBookings();
 			this.getAllDoctors();
 			this.getAllProcedures();
 		},
@@ -584,13 +617,22 @@ console.dir(prepareIntervals());
 					this.agree = false;
 			    	this.doctor.id = '';
 			    	this.doctor.name = '';
-			    	this.procedure= '';
+			    	this.procedure = '';
+			    	this.bookData = []
 			    	let vm = this;
 			    	let events = this.calendar.getEvents();
 	    			$.each(events, function(index, val) {
 		    			let removeEvent = vm.calendar.getEventById( val.id )
 		    			removeEvent.remove();
 	    			});	
+					this.getAllBookings();
+				}
+			},
+			showModal: function() {
+				if (this.showModal) {
+					$('body').css('overflow', 'hidden');
+				} else {
+					$('body').css('overflow', 'auto');
 				}
 			}
 		},

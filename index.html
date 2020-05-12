@@ -84,7 +84,7 @@
 
 	<div class="container mt-4" id="book-now">
 		<div class="row">
-			<div class="col-md-7">
+			<div class="col-md-12">
 				<p class="mb-0">If you would like to contact our helpdesk instead, please call:</p>
 				<p class="mb-0">Mobile: 0921363 (Smart/Sun/Viber) 09773864434 (Globe/TM)</p>
 				<p class="mb-0">Landline: 045 332 3486</p>
@@ -126,19 +126,40 @@
 
 					<!-- use the modal component, pass in the prop -->
 				    <modal v-if="showModal" @close="showModal = false" v-cloak>
-				        <h3 slot="header">Choose a time slot</h3>
-				        <div slot="body">
-				        	{{modalContent.doctor}}
-				        	{{modalContent.schedule}}
-				        	{{procedure.time}}
+				        <div slot="header" class="w-100">
+					        <a href="#" @click.prevent="showModal = false" class="float-right text-danger"><i class="fas fa-times"></i></a>
+				        	<h3>Choose a time slot</h3>
 				        </div>
-				        <button slot="footer" class="btn btn-primary" @click="showModal = false">Ok</button>
+				        <div slot="body">
+				        	
+				        	<!-- {{selected.timeSlot}} -->
+				        	<ul class="list-group">
+				        		<li class="list-group-item active">
+				        			Doctor: {{selected.doctor}}<br>
+				        			Procedure: {{procedure.text}} ( {{getHoursMinutes(procedure.time)}})<br>
+				        			Date: {{selected.date}}
+				        		</li>
+				        		<li class="list-group-item d-flex align-items-center justify-content-between" v-for="timeSlot in selected.timeSlot">
+				        			{{timeSlot}}
+				        			<div v-if="checkTimeSlot(doctor.id,procedure.id,selected.doctorSchedId,selected.date,timeSlot)">
+				        				<button class="btn btn-secondary" disabled>Unavailable</button>
+				        			</div>
+				        			<div v-else>
+				        				<button class="btn btn-info" @click="bookTimeSlot(timeSlot)">Book</button>
+				        			</div>
+				        		</li>
+				        	</ul>
+				        	
+				        </div>
+				        <div slot="footer"></div>
 				    </modal>
 
 				</div>
 
 			</div>
-			<div class="col-md-5">
+		</div>
+		<div class="row mt-5">
+			<div class="col-md-6">
 				<!-- novalidate remove popup on email input -->
 				<form v-on:submit.prevent="addAppointment" novalidate="true" class="w-100 position-relative" v-cloak>
 					<h5>DATA PRIVACY ACT</h5>
