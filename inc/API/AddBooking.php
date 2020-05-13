@@ -3,7 +3,9 @@ require '../../vendor/autoload.php';
 
 use Inc\Booking;
 
-class AddAppointment
+new AddBooking();
+
+class AddBooking
 {
 	private $book;
 	private $data;
@@ -14,13 +16,11 @@ class AddAppointment
 		$this->data = json_decode(file_get_contents("php://input"), TRUE);
 		$this->book = new Booking();
 		$this->addBooking($this->data);
-
-		
 	}
 
 	public function addBooking($data)
 	{
-		$id = $this->book->insertData('appointments', [
+		$id = $this->book->insertData('customers', [
 			'full_name' 		=> $data['full_name'],
 			'gender' 			=> $data['gender'],
 			'contact_number' 	=> $data['contact_number'],
@@ -31,26 +31,26 @@ class AddAppointment
 		]);
 
 		if (!empty($id)) {
-			if (!empty($this->data['booking'])) {
-				foreach ($this->data['booking'] as $book) {
-					$this->book->insertData('book', [
-						'appointment_id' 	=> $id,
-						'doctor_id' 		=> $book['doctor_id'],
+			if (!empty($data['booking'])) {
+				foreach ($data['booking'] as $book) {
+					$this->book->insertData('appointments', [
+						'customer_id' 		=> $id,
+						'doctor_id' 		=> $data['doctor_id'],
 						'schedule_id' 		=> $book['schedule_id'],
 						'procedure_id' 		=> $book['procedure_id'],
+						'branch_id' 		=> $data['branch_id'],
 						'time_slot' 		=> $book['time_slot'],
-						'date'				=> $book['date']
+						'date'				=> $book['date'],
+						'status'			=> ''
 					]);
 				}
 			}
+			echo json_encode([
+				'status' => 'success',
+				'data' => $data['booking'],
+			]);
 		}
-
-		echo json_encode([
-			'status' => 'success',
-			'doctors' => $data,
-		]);
 
 	}
 }
-new AddAppointment();
 ?>

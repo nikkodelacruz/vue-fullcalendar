@@ -26,8 +26,6 @@ class GetDoctors
 				$this->getDoctorScheduleById($get['id']);
 			}
 		}
-		// $this->getDoctorById();
-		// $this->getDoctorScheduleById();
 	}
 
 	public function getAllDoctors()

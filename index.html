@@ -84,16 +84,16 @@
 
 	<div class="container mt-4" id="book-now">
 		<div class="row">
-			<div class="col-md-12">
+			<div class="col-md-7">
 				<p class="mb-0">If you would like to contact our helpdesk instead, please call:</p>
 				<p class="mb-0">Mobile: 0921363 (Smart/Sun/Viber) 09773864434 (Globe/TM)</p>
 				<p class="mb-0">Landline: 045 332 3486</p>
 				<p class="mb-0">Mondays to Saturdays, 8AM to 8PM | Sundays, 9AM to 6PM (Philippine Standard Time)</p>
 				<div class="form-row mb-3 mt-3">
 					<div class="col">
-						<select class="form-control" v-model="branch" v-cloak>
+						<select class="form-control" v-model="branch.id" v-cloak>
 							<option value="">Select Branch</option>
-							<option v-for="brnch in branches" :value="brnch">{{brnch}}</option>
+							<option v-for="br in branches" :value="br.id">{{br.branch_name}}</option>
 						</select>
 					</div>
 					<div class="col">
@@ -125,14 +125,12 @@
 					<div id='calendar'></div>
 
 					<!-- use the modal component, pass in the prop -->
-				    <modal v-if="showModal" @close="showModal = false" v-cloak>
+				    <modal v-if="showModal == 'timeslot'" @close="showModal = false" v-cloak>
 				        <div slot="header" class="w-100">
 					        <a href="#" @click.prevent="showModal = false" class="float-right text-danger"><i class="fas fa-times"></i></a>
 				        	<h3>Choose a time slot</h3>
 				        </div>
 				        <div slot="body">
-				        	
-				        	<!-- {{selected.timeSlot}} -->
 				        	<ul class="list-group">
 				        		<li class="list-group-item active">
 				        			Doctor: {{selected.doctor}}<br>
@@ -149,7 +147,79 @@
 				        			</div>
 				        		</li>
 				        	</ul>
-				        	
+				        </div>
+				        <div slot="footer"></div>
+				    </modal>
+
+				    <!-- Register -->
+				    <modal v-if="showModal == 'register'" @close="showModal = false" v-cloak>
+				        <div slot="header" class="w-100">
+					        <a href="#" @click.prevent="showModal = false" class="float-right text-danger"><i class="fas fa-times"></i></a>
+				        	<h3>Register your account</h3>
+				        </div>
+				        <div slot="body">
+				        	<form v-on:submit.prevent="registerUser" novalidate="true" class="w-100 position-relative" v-cloak>
+								<!-- preloader -->
+								<div class="preloader-container" v-if="registerloading">
+									<div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status">
+									  <span class="sr-only">Loading...</span>
+									</div>
+								</div>
+
+								<small class="text-danger" v-if="errors.length">
+									<span class="d-block" v-for="error in errors" v-text="error"></span>
+								</small>
+								<input type="text" class="form-control mb-3" v-model="fullName" placeholder="Full Name">
+								<div class="form-row">
+									<div class="col">
+										<select class="form-control" v-model="gender">
+											<option value="">Gender</option>
+											<option value="Male">Male</option>
+											<option value="Female">Female</option>
+										</select>
+									</div>
+									<div class="col">
+										<input type="text" class="form-control mb-3" v-model="contactNumber" placeholder="Contact Number">
+									</div>
+								</div>
+								<div class="form-row mb-3">
+									<div class="col">
+										<select class="form-control" v-model="birthMonth" v-cloak>
+											<option value="">Birth Month</option>
+											<option v-for="(n, i) in months" :value="i+1">{{n}}</option>
+										</select>
+									</div>
+									<div class="col">
+										<select class="form-control" v-model="birthDay" v-cloak>
+											<option value="">Birth Day</option>
+											<option v-for="(n, i) in 31" :value="n">{{n}}</option>
+										</select>
+									</div>
+									<div class="col">
+										<select class="form-control" v-model="birthYear" v-cloak>
+											<option value="">Birth Year</option>
+											<option v-for="year in years" :value="year">{{year}}</option>
+										</select>
+									</div>
+								</div>
+								<input type="email" class="form-control mb-3" v-model="email" placeholder="Email Address">
+								<select class="form-control mb-3" v-model="source">
+									<option value="">Where did you hear about us?</option>
+									<option value="Internet">Internet</option>
+									<option value="Newspaper">Newspaper</option>
+									<option value="Radio">Radio</option>
+								</select>
+								<textarea rows="5" placeholder="Remarks" class="form-control mb-3" v-model="remarks"></textarea>	
+								<input type="password" class="form-control mb-3" v-model="password" placeholder="Password">
+								<input type="password" class="form-control mb-3" v-model="rePassword" placeholder="Reenter Password">
+								<div class="custom-control custom-checkbox text-center">
+									<input type="checkbox" class="custom-control-input" id="agree" v-model="agree">
+									<label for="agree" class="custom-control-label">By submitting this form, you agree to the Terms & Conditions of this website</label>
+								</div>
+								<div class="text-center my-4">
+									<input type="submit" class="btn btn-info" value="Register">
+								</div>
+							</form>
 				        </div>
 				        <div slot="footer"></div>
 				    </modal>
@@ -157,9 +227,7 @@
 				</div>
 
 			</div>
-		</div>
-		<div class="row mt-5">
-			<div class="col-md-6">
+			<div class="col-md-5">
 				<!-- novalidate remove popup on email input -->
 				<form v-on:submit.prevent="addAppointment" novalidate="true" class="w-100 position-relative" v-cloak>
 					<h5>DATA PRIVACY ACT</h5>

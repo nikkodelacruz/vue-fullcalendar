@@ -5,11 +5,12 @@ $(document).ready(function($) {
     	template: "#modal-template"
     });
 
-	const addAppointmentAPI = 'inc/API/AddAppointment.php';
+	const addBookingAPI = 'inc/API/AddBooking.php';
 	const getDoctorsAPI = 'inc/API/GetDoctors.php';
-	const getProceduresAPI = 'inc/API/Procedures.php';
+	const getProceduresAPI = 'inc/API/GetProcedures.php';
+	const getBranchesAPI = 'inc/API/GetBranches.php';
+	const getAppointmentsAPI = 'inc/API/GetAppointments.php';
 	const calendarElement = 'calendar';
-	const getBookings = 'inc/API/GetBookings.php';
 
 	new Vue({
 		el: "#book-now",
@@ -47,21 +48,19 @@ $(document).ready(function($) {
 				'November',
 				'December'
 			],
-			branches: [
-				'Branch 1',
-				'Branch 2',
-				'Branch 3',
-			],
-			branch: '',
+			branches: [],
+			branch: { id: '', name: '' },
 			doctors: [],
 			doctor: { id: '', name: '' },
 			procedures: [],
 			procedure: '',
-			appointments: [],
-			showModal: false,
+			showModal: '',
 			selected: { id:'', doctor: '', timeSlot: [], date: '', doctorSchedId: '' }, //current selected date
-			bookData: [], //all booking
-			booking: []
+			customerBooking: [], //all booking
+			appointments: [],
+			registerloading: false,
+			password: '',
+			rePassword: ''
 		},
 		methods: {
 			fullcalendar: function(){
@@ -118,9 +117,8 @@ $(document).ready(function($) {
 	        				info.el.getElementsByClassName("remove-event")[0].onclick = function() {
 	        					vm.calendar.getEventById( info.event.id ).remove();
 								// remove item from array by key value
-								vm.bookData = vm.bookData.filter( obj => obj.id !== info.event.id );
+								vm.customerBooking = vm.customerBooking.filter( obj => obj.id !== info.event.id );
 						    	vm.isFull = false;
-								// console.log(vm.bookData);
 	        				}
             			}
             			let startTime = info.event.extendedProps.start_time
@@ -154,8 +152,6 @@ $(document).ready(function($) {
 				    dateClick: function(info) {
 
 				    	let date = info.dateStr;
-				    	let checkEvent = vm.appointments;
-    					
     					let events = vm.calendar.getEvents();
 				    	let isFull = false;
 				    	$.each(events, function(index, val) {
@@ -188,7 +184,7 @@ $(document).ready(function($) {
 			        						if (val.available) {
 
 						            			// show modal
-												vm.showModal = true;
+												vm.showModal = 'timeslot';
 												vm.selected.timeSlot = [];
 
 												let value = {
@@ -231,9 +227,81 @@ $(document).ready(function($) {
 				this.viewTitle = this.calendar.view.title;
 			},
 			addAppointment: function(e) {
+
+					let isValid = this.validateFields();
+
+					if (isValid) {
+						this.showModal = 'register';
+					}
+				
+
+					// return new Promise((resolve, reject) => {
+					// 	let birthDate = moment(bday).format('YYYY-MM-DD');
+					// 	let vm = this;
+					// 	vm.loading = true;
+					// 	vm.status = false;
+					// 	axios({
+					// 		method: 'post',
+					// 	  	url: addBookingAPI,
+					// 	  	data: {
+					// 	    	full_name: this.fullName,
+					// 	    	gender: this.gender,
+					// 	    	contact_number: this.contactNumber,
+					// 	    	birth_date: birthDate,
+					// 	    	email_address: this.email,
+					// 	    	source: this.source,
+					// 	    	remarks: this.remarks,
+					// 	    	branch_id: this.branch.id,
+					// 	    	doctor_id: this.doctor.id,
+					// 	    	booking: this.customerBooking,
+					// 	  	}
+					// 	})
+					// 	.then((response) => {
+					// 		// console.log(response);
+					// 		setTimeout(function(){
+					// 			vm.loading = false;
+					// 		},500);
+
+					// 		if (response.data.status == 'invalid') {
+					// 			let dates = response.data.data;
+					// 			$.each(dates, function(index, val) {
+					// 				let date = moment(new Date(val)).format('LL')
+					// 				let message = "Selected procedure on "+date+" has already reached the time remaining, \nPlease choose another date or procedure";
+					// 				alert(message);
+					// 			});
+					// 		} else if (response.data.status == 'success') {
+					// 			alert('Successfully Added')
+					// 			setTimeout(function(){
+					// 				vm.status = true;
+					// 			},500);
+					// 		} else if (response.data.status == 'full') {
+					// 			alert('Fully book')
+					// 		} else {
+					// 			alert('Something went wrong, Please try again')
+					// 		}
+					// 		resolve(response)
+					// 	})
+					// 	.catch((response) => {
+					// 		reject(response)
+					// 		setTimeout(function(){
+					// 			vm.loading = false;
+					// 		},500);
+					// 		alert('Something went wrong, Please try again')
+					// 	});
+					// });
+				
+
+			},
+			registerUser: function(e) {
+				let isValid = this.validateFields();
+				if (isValid) {
+					this.showModal = false;
+				}
+			},
+			validateFields: function() {
 				let bday = this.birthYear+'-'+this.birthMonth+'-'+this.birthDay;
 				let isValidDate = moment(bday, 'YYYY-M-D', true);
-
+				let result = false;
 				this.errors = [];
 				if (!this.fullName) {
 					this.errors.push("Full Name is required");
@@ -257,91 +325,19 @@ $(document).ready(function($) {
 				if (!this.doctor.id) {
 					this.errors.push("Please select a doctor");
 				}
-				
-     			//let events = this.calendar.getEvents();
-     			//let appointments = [];
-				// $.each(events, function(index, val) {
-				// 	if (val.extendedProps.appointment) { //get only the appointment
-				// 		appointments.push({
-				// 			id: val.extendedProps.procedure_id,
-				// 			date: moment(val.start).format('YYYY-MM-DD'),
-				// 			time_duration: val.extendedProps.procedure_duration,
-				// 			schedule_id: val.extendedProps.schedule_id, //doctor schedule id
-				// 		})
-				// 	}
-				// });
-
-
-				// console.log(this.bookData);
-
-				if (this.bookData.length <= 0) {
+				if (!this.branch.id) {
+					this.errors.push("Please select a branch");
+				}
+				if (this.customerBooking.length <= 0) {
 					this.errors.push("Please book an appointment");
 				}
-				// console.log(appointments)
-
-				if (this.errors.length <= 0) {
-
-					return new Promise((resolve, reject) => {
-						let birthDate = moment(bday).format('YYYY-MM-DD');
-						let vm = this;
-						vm.loading = true;
-						vm.status = false;
-						axios({
-							method: 'post',
-						  	url: addAppointmentAPI,
-						  	data: {
-						    	full_name: this.fullName,
-						    	gender: this.gender,
-						    	contact_number: this.contactNumber,
-						    	birth_date: birthDate,
-						    	email_address: this.email,
-						    	source: this.source,
-						    	remarks: this.remarks,
-						    	booking: this.bookData,
-						    	// doctor_id: this.doctor.id, //selected doctor
-						    	// appointments: appointments
-						    	// procedure_id: appointment[0].id,
-						    	// procedure_duration: appointment[0].time,
-						    	// doctor_schedule_id: appointment[0].doctor_schedule_id
-						  	}
-						})
-						.then((response) => {
-							// console.log(response);
-							setTimeout(function(){
-								vm.loading = false;
-							},500);
-
-							if (response.data.status == 'invalid') {
-								let dates = response.data.data;
-								$.each(dates, function(index, val) {
-									let date = moment(new Date(val)).format('LL')
-									let message = "Selected procedure on "+date+" has already reached the time remaining, \nPlease choose another date or procedure";
-									alert(message);
-								});
-							} else if (response.data.status == 'success') {
-								alert('Successfully Added')
-								setTimeout(function(){
-									vm.status = true;
-								},500);
-							} else if (response.data.status == 'full') {
-								alert('Fully book')
-							} else {
-								alert('Something went wrong, Please try again')
-							}
-							resolve(response)
-						})
-						.catch((response) => {
-							reject(response)
-							setTimeout(function(){
-								vm.loading = false;
-							},500);
-							alert('Something went wrong, Please try again')
-						});
-					});
-					// let dateStart = moment(this.startDate).format('YYYY-MM-DD');
-					// let dateEnd = moment(this.endDate).format('YYYY-MM-DD');
+				if (this.password !== this.rePassword) {
+					this.errors.push("Passwords doesn't matched");
 				}
-
+				if (this.errors.length <= 0) {
+					result = true; //no errors
+				}
+				return result;
 			},
 			async getAllDoctors() {
 				try {
@@ -359,11 +355,9 @@ $(document).ready(function($) {
 							// always exccuted
 						})
 				    } );
-				    // console.log(response)
 				   	const doctorsData = response.data.doctors;
 				    let docs = this.doctors;
 				   	$.each(doctorsData, function(index, val) {
-				   		// console.log(val.name)
 				   		docs.push({ id: val.id, name: val.name })
 				   	});
 				} catch (error) {
@@ -457,10 +451,10 @@ $(document).ready(function($) {
 					this.scheduleLoading = false;
 				}
 			},
-			async getAllBookings() {
+			async getAllBranches() {
 				try {
 				    const response = await new Promise((resolve, reject) => {
-				    	axios.get(getBookings)
+				    	axios.get(getBranchesAPI)
 						.then(function(response){
 							resolve(response)
 						})
@@ -473,10 +467,36 @@ $(document).ready(function($) {
 							// always exccuted
 						})
 				    } );
+				    // console.log(response)
 				    if (response.data.status == 'success') {
-				    	let vm = this;
-				    	this.booking = response.data.bookings;
-				    	// console.log(this.booking)
+				    	this.branches = response.data.branches
+				    }
+				    // this.procedures.push
+					this.scheduleLoading = false;
+				} catch (error) {
+				    console.error(error);
+					this.scheduleLoading = false;
+				}
+			},
+			async getAllAppointments() {
+				try {
+				    const response = await new Promise((resolve, reject) => {
+				    	axios.get(getAppointmentsAPI)
+						.then(function(response){
+							resolve(response)
+						})
+						.catch(function(error){
+							// handle error
+							reject(error)
+							console.log(error)
+						})
+						.then(function(){
+							// always exccuted
+						})
+				    } );
+				    	// console.log(response)
+				    if (response.data.status == 'success') {
+				    	this.appointments = response.data.appointments;
 				    }
 				    // this.procedures.push
 					this.scheduleLoading = false;
@@ -508,16 +528,14 @@ $(document).ready(function($) {
 				let date = moment(this.selected.date).format('YYYY-MM-DD');
 				let book = this.doctor.id+this.procedure.id+timeSlot+date;
 				let id = book.replace(/[^A-Z0-9]/ig, "");
-				this.bookData.push({
+				this.customerBooking.push({
 					id: id,
     				start: date,
-    				doctor_id: this.doctor.id,
-    				procedure_id: this.procedure.id, //procedures id
+    				procedure_id: this.procedure.id, //procedure id
     				schedule_id : this.selected.doctorSchedId, // doctor schedule id
     				time_slot: timeSlot,
     				date: date
 				});
-				// console.log(this.bookData);
 
 				this.calendar.addEventSource([{
     				id: id,
@@ -538,9 +556,8 @@ $(document).ready(function($) {
 				let dateFormat = moment(date).format('YYYY-MM-DD');
 				let book_id = doctor_id+procedure_id+sched_id+dateFormat+time;
 				book_id = this.removeSpecialCharacters(book_id)
-				// console.log(book_id);
-				if (this.booking) {
-					$.each(this.booking, (index, val) => {
+				if (this.appointments) {
+					$.each(this.appointments, (index, val) => {
 						let id = val.doctor_id+val.procedure_id+val.schedule_id+val.date+val.time_slot;
 						id = vm.removeSpecialCharacters(id)
 						if (book_id == id) {
@@ -550,15 +567,7 @@ $(document).ready(function($) {
 				}
 				return result;
 			},
-			removeSpecialCharacters: function(string) {
-				//includes removing of spaces
-				return string.replace(/[^A-Z0-9]/ig, "");
-			},
-			validEmail: function(email) {
-		    	let re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-		      	return re.test(email);
-		    },
-		    selectDoctor: function(event) {
+			selectDoctor: function(event) {
 		    	let vm = this;
 		    	let name = event.target.options[event.target.options.selectedIndex].text;
     			let events = vm.calendar.getEvents();
@@ -570,14 +579,21 @@ $(document).ready(function($) {
 			    	vm.doctor.name = name+' - ';
 			    	vm.selected.doctor = name;
 					vm.scheduleLoading = true;
-					vm.appointments = [];
 		    		vm.isFull = false;
     				vm.getDoctorSchedule(vm.doctor.id);
-		    		vm.bookData = []; //clear data upon changing of doctor
+		    		vm.customerBooking = []; //clear data upon changing of doctor
     			} else {
 			    	vm.doctor.name = '';
 			    	vm.selected.doctor = '';
 		    	}
+		    },
+			removeSpecialCharacters: function(string) {
+				//includes removing of spaces
+				return string.replace(/[^A-Z0-9]/ig, "");
+			},
+			validEmail: function(email) {
+		    	let re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+		      	return re.test(email);
 		    },
 		    navigateMonth: function(nav) {
 		    	if (nav == 'prev') {
@@ -598,9 +614,10 @@ $(document).ready(function($) {
 			}
 		},
 		created(){
-			this.getAllBookings();
+			this.getAllAppointments();
 			this.getAllDoctors();
 			this.getAllProcedures();
+			this.getAllBranches();
 		},
 		watch: {
 			status: function() {
@@ -618,21 +635,22 @@ $(document).ready(function($) {
 			    	this.doctor.id = '';
 			    	this.doctor.name = '';
 			    	this.procedure = '';
-			    	this.bookData = []
+			    	this.branch.id = '';
+			    	this.customerBooking = []
 			    	let vm = this;
 			    	let events = this.calendar.getEvents();
 	    			$.each(events, function(index, val) {
 		    			let removeEvent = vm.calendar.getEventById( val.id )
 		    			removeEvent.remove();
 	    			});	
-					this.getAllBookings();
+					this.getAllAppointments();
 				}
 			},
 			showModal: function() {
-				if (this.showModal) {
-					$('body').css('overflow', 'hidden');
-				} else {
+				if (this.showModal === false) {
 					$('body').css('overflow', 'auto');
+				} else {
+					$('body').css('overflow', 'hidden');
 				}
 			}
 		},
